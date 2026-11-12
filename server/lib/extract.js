@@ -1,6 +1,9 @@
 // Text extraction for document intelligence. Supports plain text, Markdown, CSV, HTML and .docx.
 // The .docx reader is a minimal ZIP central-directory parser using node:zlib (no third-party code).
 import zlib from 'node:zlib';
+import { decodeEntities, htmlToText } from './html-text.js';
+
+export { htmlToText } from './html-text.js';
 
 export const SUPPORTED_TYPES = {
   'text/plain': 'text',
@@ -47,12 +50,6 @@ function readZipEntry(buf, wantedName) {
   throw new Error('word/document.xml not found in .docx');
 }
 
-const decodeEntities = (s) => s
-  .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'")
-  .replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(Number(d)))
-  .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
-  .replace(/&amp;/g, '&');
-
 export function docxToText(buf) {
   const xml = readZipEntry(buf, 'word/document.xml').toString('utf8');
   const paragraphs = xml.split(/<\/w:p>/).map((p) => {
@@ -60,17 +57,6 @@ export function docxToText(buf) {
     return decodeEntities(runs.join(''));
   });
   return paragraphs.filter((t) => t.trim()).join('\n');
-}
-
-// HTML -> text. Hidden elements are KEPT (not dropped) so that hidden instructions are surfaced to the
-// injection scanner rather than silently ignored; the content is treated as untrusted data either way.
-export function htmlToText(html) {
-  return decodeEntities(html
-    .replace(/<!--([\s\S]*?)-->/g, ' $1 ')
-    .replace(/<(script|style)[^>]*>([\s\S]*?)<\/\1>/gi, ' $2 ')
-    .replace(/<br\s*\/?>/gi, '\n').replace(/<\/(p|div|li|h[1-6]|tr)>/gi, '\n')
-    .replace(/<[^>]+>/g, ' '))
-    .replace(/[ \t]+/g, ' ').replace(/\n\s*\n+/g, '\n').trim();
 }
 
 export function extractText(mime, buffer) {

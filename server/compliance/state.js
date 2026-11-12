@@ -21,7 +21,11 @@ export function hydrateAssessment(a) {
 
 // Evidence freshness per control: missing | current | expiring (≤30 days) | expired | stale (older than review cycle).
 export function evidenceStatus(repo, controls, now = Date.now()) {
-  const all = repo.list('evidence', { limit: 5000 });
+  return evidenceStatusFrom(repo.list('evidence', { limit: 5000 }), controls, now);
+}
+
+// Pure core over evidence rows ({ id, control_id, supersedes, valid_until, created_at }).
+export function evidenceStatusFrom(all, controls, now = Date.now()) {
   const out = {};
   for (const c of controls) {
     const items = all.filter((e) => e.control_id === c.id);

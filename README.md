@@ -36,6 +36,17 @@ npm test
 Runs 76 tests: scoring parity with the MVP, auth/MFA/RBAC, CSRF, tenant isolation (including AI context),
 AI threat tests, retrieval accuracy, KB and regulatory governance, document intelligence and the Claude provider.
 
+### Browser-only demo
+
+```bash
+npm run build:demo
+```
+
+Writes `dist/demo.html`: one self-contained page that runs the real web client against an in-page copy of the
+API (`demo/mock-api.js`), reusing the server's scoring, retrieval, AI guards, checklists, regulatory diffing,
+insights and Copilot modules. No server is needed and data stays in the viewer's browser. It is a demonstration
+only, not a security boundary.
+
 ### Enabling the model
 
 Without credentials every AI feature runs in **deterministic mode**: answers quote the approved sources, with

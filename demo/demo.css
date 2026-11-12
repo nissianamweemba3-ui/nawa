@@ -1,0 +1,11 @@
+
+/* Browser demo additions */
+.demo-bar{background:var(--info-bg);color:var(--ink);border-bottom:1px solid var(--line)}
+.demo-inner{max-width:1200px;margin:0 auto;padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:8px}
+.demo-inner p{margin:0;font-size:14px}
+.demo-actions{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.demo-viewer[hidden]{display:none}
+.demo-viewer{position:fixed;inset:0;background:rgba(15,21,32,.55);display:grid;place-items:center;padding:16px;z-index:50}
+.demo-viewer-card{background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:18px;width:min(720px,100%);max-height:85vh;overflow:auto}
+.demo-viewer-head{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.demo-bar code{white-space:nowrap;word-break:normal}
