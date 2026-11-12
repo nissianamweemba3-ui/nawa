@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DPA Zambia — Compliance MVP</title>
+<style>
+:root{--ink:#172033;--muted:#667085;--line:#e5e7eb;--bg:#f7f8fa;--card:#fff;--accent:#172554;--good:#087443;--warn:#b54708;--bad:#b42318}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;color:var(--ink);background:var(--bg)}
+header{background:var(--accent);color:#fff;padding:24px 28px;display:flex;justify-content:space-between;align-items:center}
+header h1{margin:0;font-size:22px}header span{opacity:.8;font-size:13px}
+.container{max-width:1100px;margin:28px auto;padding:0 18px}.grid{display:grid;grid-template-columns:260px 1fr;gap:20px}
+nav,.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px}
+nav button{display:block;width:100%;text-align:left;border:0;background:transparent;padding:12px;border-radius:9px;margin-bottom:4px;color:var(--ink);cursor:pointer}
+nav button.active,nav button:hover{background:#eef2ff}
+h2{margin-top:0}.muted{color:var(--muted)}.hidden{display:none}.row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+label{font-size:13px;font-weight:600;display:block;margin:14px 0 7px}input,select,textarea{width:100%;padding:11px;border:1px solid #d0d5dd;border-radius:8px;font:inherit}textarea{min-height:90px}
+.actions{display:flex;gap:10px;margin-top:20px}.btn{border:0;border-radius:8px;padding:11px 16px;background:var(--accent);color:#fff;cursor:pointer}.btn.secondary{background:#eef2ff;color:var(--accent)}
+.q{padding:14px 0;border-bottom:1px solid var(--line)}.q:last-child{border-bottom:0}.q p{margin:0 0 9px;font-weight:600}.opts{display:flex;gap:16px;flex-wrap:wrap}.opts label{font-weight:400;margin:0}
+.score{display:flex;align-items:center;gap:20px}.circle{width:110px;height:110px;border-radius:50%;display:grid;place-items:center;background:#eef2ff;font-size:28px;font-weight:800}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:18px 0}.kpi{padding:16px;border:1px solid var(--line);border-radius:10px}.kpi b{font-size:24px;display:block}
+.item{padding:14px 0;border-bottom:1px solid var(--line)}.badge{display:inline-block;padding:4px 8px;border-radius:999px;font-size:11px;font-weight:700}.high{background:#fee4e2;color:var(--bad)}.med{background:#ffead5;color:var(--warn)}.low{background:#dcfae6;color:var(--good)}
+footer{max-width:1100px;margin:20px auto 40px;padding:0 18px;font-size:12px;color:var(--muted)}
+@media(max-width:800px){.grid{grid-template-columns:1fr}.row,.kpis{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header><div><h1>DPA Zambia</h1><span>Data Protection Compliance MVP</span></div><span>Prototype • v0.1</span></header>
+<div class="container">
+<div class="grid">
+<nav>
+<button class="active" data-tab="org">1. Organisation</button>
+<button data-tab="assessment">2. Assessment</button>
+<button data-tab="dashboard">3. Dashboard</button>
+<button data-tab="documents">4. Documents</button>
+<button data-tab="sources">5. Legal Sources</button>
+</nav>
+
+<main>
+<section id="org" class="card">
+<h2>Organisation profile</h2><p class="muted">Set up a company profile. This MVP stores information only in your browser.</p>
+<div class="row">
+<div><label>Entity name</label><input id="entity" placeholder="Example: ABC Limited"></div>
+<div><label>Sector</label><input id="sector" placeholder="Mining, HR, Retail, Finance..."></div>
+<div><label>Employees</label><input id="employees" type="number" min="0" placeholder="25"></div>
+<div><label>Role</label><select id="role"><option>Data Controller</option><option>Data Processor</option><option>Controller and Processor</option></select></div>
+</div>
+<div class="actions"><button class="btn" onclick="saveOrg();showTab('assessment')">Save & start assessment</button></div>
+</section>
+
+<section id="assessment" class="card hidden">
+<h2>Compliance assessment</h2>
+<p class="muted">Answer based on the organisation's current position. This is a screening tool, not a legal opinion.</p>
+<div id="questions"></div>
+<div class="actions"><button class="btn" onclick="calculate()">Calculate compliance score</button></div>
+</section>
+
+<section id="dashboard" class="card hidden">
+<h2>Compliance dashboard</h2>
+<div id="dashboardContent"><p class="muted">Complete the assessment first.</p></div>
+</section>
+
+<section id="documents" class="card hidden">
+<h2>Document generator</h2>
+<p class="muted">This prototype generates a structured starter document from the assessment. Final legal review is recommended before use.</p>
+<div class="row">
+<div><label>Document</label><select id="docType">
+<option>Data Protection Policy</option>
+<option>Privacy Notice</option>
+<option>Data Breach Response Procedure</option>
+<option>Data Retention & Disposal Policy</option>
+<option>Data Subject Rights Procedure</option>
+<option>Data Processing Agreement — starter</option>
+</select></div>
+<div><label>Contact / DPO name</label><input id="dpo" placeholder="Name or role"></div>
+</div>
+<div class="actions"><button class="btn" onclick="generateDoc()">Generate document</button></div>
+<pre id="docOutput" style="white-space:pre-wrap;background:#f8fafc;border:1px solid var(--line);padding:16px;border-radius:10px;margin-top:18px"></pre>
+</section>
+
+<section id="sources" class="card hidden">
+<h2>Legal source register</h2>
+<p class="muted">The MVP is designed around official Zambia DPC materials. Before production use, the legal knowledge base should be version-controlled and reviewed.</p>
+<div class="item"><b>Data Protection Act No. 3 of 2021</b><br><span class="muted">Primary legislation.</span></div>
+<div class="item"><b>Data Protection (Registration and Licensing) Regulations, 2021</b><br><span class="muted">Registration/licensing framework.</span></div>
+<div class="item"><b>Data Protection (General) Regulations, 2024</b><br><span class="muted">Current DPC portal identifies these as part of the current registration environment.</span></div>
+<div class="item"><b>DPC Registration & Compliance Guidance</b><br><span class="muted">Registration guide, breach guide, ROPA guide, training guide and related resources.</span></div>
+</section>
+</main>
+</div>
+</div>
+<footer>Prototype only. It does not submit anything to the Data Protection Commission, does not replace professional advice, and should not be used as a production compliance system without security, legal validation and current-source verification.</footer>
+
+<script>
+const qs=[
+["registration","Is the organisation registered with the Data Protection Commission as a controller/processor where required?","high"],
+["dpo","Has the organisation appointed an appropriate Data Protection Officer where required/appropriate?","high"],
+["privacy","Does the organisation have a current privacy notice explaining relevant processing?","high"],
+["ropa","Does the organisation maintain a Record of Processing Activities (ROPA) or equivalent processing register?","high"],
+["inventory","Does the organisation maintain an inventory/data map of personal data and systems?","medium"],
+["basis","Is a lawful basis identified and documented for each major processing activity?","high"],
+["sensitive","Are sensitive personal data processing activities identified and subject to additional controls?","high"],
+["retention","Are retention periods and secure disposal rules documented?","medium"],
+["breach","Is there a documented data security breach response procedure and incident register?","high"],
+["rights","Is there a process for responding to data subject requests/rights?","high"],
+["processors","Are third-party processors subject to due diligence and appropriate contractual controls?","high"],
+["transfer","Are cross-border transfers/storage outside Zambia identified and assessed before use?","high"],
+["training","Do relevant staff receive data protection/privacy training?","medium"],
+["security","Are access controls, backups, passwords, encryption and other security measures documented and reviewed?","high"],
+["dpia","Is there a process for assessing high-risk processing / privacy impacts before launch?","medium"]
+];
+const labels={high:"High",medium:"Medium",low:"Low"};
+const answers={};
+let org={};
+
+function renderQuestions(){
+ document.getElementById("questions").innerHTML=qs.map(([id,text,r])=>`
+ <div class="q"><p>${text}</p><div class="opts">
+ <label><input type="radio" name="${id}" value="yes"> Yes</label>
+ <label><input type="radio" name="${id}" value="partial"> Partially</label>
+ <label><input type="radio" name="${id}" value="no"> No</label>
+ <span class="badge ${r==='high'?'high':r==='medium'?'med':'low'}">${labels[r]} priority</span>
+ </div></div>`).join("");
+}
+renderQuestions();
+
+function showTab(id){
+ document.querySelectorAll("main section").forEach(s=>s.classList.add("hidden"));
+ document.getElementById(id).classList.remove("hidden");
+ document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("active",b.dataset.tab===id));
+}
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
+
+function saveOrg(){
+ org={entity:document.getElementById("entity").value||"Unnamed organisation",sector:document.getElementById("sector").value||"Not specified",employees:document.getElementById("employees").value||0,role:document.getElementById("role").value};
+ localStorage.setItem("dpaOrg",JSON.stringify(org));
+}
+
+function calculate(){
+ qs.forEach(([id])=>{let x=document.querySelector(`input[name="${id}"]:checked`);answers[id]=x?x.value:null});
+ localStorage.setItem("dpaAnswers",JSON.stringify(answers));
+ let total=0, max=0, gaps=[];
+ qs.forEach(([id,text,r])=>{
+   let weight=r==="high"?3:r==="medium"?2:1; max+=weight;
+   let a=answers[id]; let points=a==="yes"?weight:a==="partial"?weight*.5:0; total+=points;
+   if(a!=="yes") gaps.push({text,r,a:a||"not answered"});
+ });
+ let score=Math.round(total/max*100);
+ let risk=score>=80?"Low":score>=60?"Medium":"High";
+ document.getElementById("dashboardContent").innerHTML=`
+ <div class="score"><div class="circle">${score}</div><div><h3>${org.entity||"Organisation"}</h3><p>Screening result: <b>${risk} risk</b></p><p class="muted">Score is based on the answers provided and is not a legal certification.</p></div></div>
+ <div class="kpis"><div class="kpi"><span>Score</span><b>${score}%</b></div><div class="kpi"><span>Risk</span><b>${risk}</b></div><div class="kpi"><span>Gaps</span><b>${gaps.length}</b></div></div>
+ <h3>Priority action plan</h3>${gaps.map((g,i)=>`<div class="item"><span class="badge ${g.r==='high'?'high':g.r==='medium'?'med':'low'}">${labels[g.r]} priority</span><br><b>${i+1}. ${g.text}</b><br><span class="muted">Current answer: ${g.a}. Recommended next step: document, implement and evidence the control, then reassess.</span></div>`).join("")}
+ <div class="actions"><button class="btn secondary" onclick="showTab('documents')">Generate a document</button></div>`;
+ showTab("dashboard");
+}
+
+function generateDoc(){
+ let type=document.getElementById("docType").value, dpo=document.getElementById("dpo").value||"Data Protection Officer / responsible person";
+ let name=org.entity||"Organisation";
+ let common=`${type.toUpperCase()}\n\nOrganisation: ${name}\nSector: ${org.sector||"Not specified"}\nResponsible person: ${dpo}\n\nPURPOSE\nThis document is a prototype compliance aid for managing personal data responsibly under Zambia's data protection framework.\n\nSCOPE\nApplies to relevant employees, contractors, systems and third parties processing personal data for or on behalf of the organisation.\n\nGOVERNANCE\nThe organisation should maintain appropriate records, assign responsibility, review controls periodically and retain evidence of compliance.\n\nLEGAL REVIEW\nThis starter document must be reviewed against the current Data Protection Act, regulations, DPC guidance and the organisation's actual processing activities before adoption.\n`;
+ let extra={
+ "Data Protection Policy":"\nCORE CONTROLS\n1. Data inventory and ROPA\n2. Lawful basis assessment\n3. Data subject rights handling\n4. Security controls\n5. Retention and disposal\n6. Processor management\n7. Incident/breach response\n8. Training and awareness\n9. Periodic compliance review\n",
+ "Privacy Notice":"\nNOTICE CONTENT\nExplain identity/contact details; categories of data; purposes; lawful basis; recipients/processors; transfers; retention; data subject rights; complaints/contact route; and material changes.\n",
+ "Data Breach Response Procedure":"\nINCIDENT STEPS\n1. Detect and record\n2. Contain\n3. Assess affected data and people\n4. Preserve evidence\n5. Escalate to responsible personnel\n6. Assess notification obligations\n7. Communicate where required\n8. Remediate\n9. Record lessons learned\n",
+ "Data Retention & Disposal Policy":"\nRETENTION RULES\nCreate a schedule by processing purpose and applicable legal/business requirements. At expiry, securely delete, anonymise or otherwise dispose of data in accordance with the approved schedule.\n",
+ "Data Subject Rights Procedure":"\nREQUEST WORKFLOW\nReceive and log request; verify identity where appropriate; identify systems and processors; assess the request; prepare response; record outcome and escalation.\n",
+ "Data Processing Agreement — starter":"\nPROCESSOR TERMS\nDefine processing instructions, confidentiality, security, sub-processing, assistance with data subject rights, breach handling, return/deletion, audit/cooperation and cross-border arrangements. Obtain legal review before signature.\n"}[type];
+ document.getElementById("docOutput").textContent=common+extra;
+}
+</script>
+</body>
+</html>
