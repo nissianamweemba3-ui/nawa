@@ -13,10 +13,31 @@ function int(name, dflt) {
   return n;
 }
 
+// Public origin of the deployment, e.g. https://compliance.example.zm. Used for canonical URLs, the sitemap,
+// social metadata and canonical-host redirects. Must be an http(s) origin with no path.
+export function parseSiteUrl(value) {
+  if (value === undefined || value === null || value === '') return null;
+  let u;
+  try { u = new URL(value); } catch { throw new Error('SITE_URL must be an absolute URL such as https://compliance.example.zm'); }
+  if (!['http:', 'https:'].includes(u.protocol)) throw new Error('SITE_URL must use http or https');
+  if ((u.pathname !== '/' && u.pathname !== '') || u.search || u.hash || u.username || u.password) {
+    throw new Error('SITE_URL must be an origin only, with no path, query, fragment or credentials');
+  }
+  return u.origin;
+}
+
 export function loadConfig(overrides = {}) {
   const dataDir = overrides.dataDir ?? process.env.DATA_DIR ?? path.join(ROOT, 'data');
   const hasAnthropicCreds = Boolean(process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN);
+  const env = (name) => (overrides.env && name in overrides.env ? overrides.env[name] : process.env[name]);
   return {
+    production: (env('NODE_ENV') ?? '') === 'production',
+    siteUrl: parseSiteUrl(env('SITE_URL')),
+    // Behind a reverse proxy that sets X-Forwarded-Proto, allows redirecting plain-HTTP requests to HTTPS.
+    trustProxy: (env('TRUST_PROXY') ?? 'false') === 'true',
+    // The organisation operating this deployment, shown in the privacy policy, terms and structured data.
+    operatorName: (env('OPERATOR_NAME') ?? '').trim() || null,
+    contactEmail: (env('CONTACT_EMAIL') ?? '').trim() || null,
     port: int('PORT', 3000),
     host: process.env.HOST ?? '127.0.0.1',
     dataDir,
@@ -42,4 +63,17 @@ export function loadConfig(overrides = {}) {
       'www.dpc.gov.zm,dpc.gov.zm,www.parliament.gov.zm,parliament.gov.zm,www.zambialii.org,zambialii.org')
       .split(',').map((s) => s.trim()).filter(Boolean),
   };
+}
+
+// Settings a production deployment must have. Returns a list of problems; empty means ready.
+export function productionConfigProblems(config) {
+  const problems = [];
+  if (!config.siteUrl) problems.push('SITE_URL is not set (the public https origin, used for canonical URLs and redirects)');
+  else if (!config.siteUrl.startsWith('https://')) problems.push('SITE_URL must use https in production');
+  if (!config.dataKeyHex) problems.push('DATA_KEY is not set (64 hex characters; encrypts evidence and MFA secrets)');
+  if (!config.secureCookies) problems.push('SECURE_COOKIES must be true in production (cookies only over HTTPS)');
+  if (!config.operatorName) problems.push('OPERATOR_NAME is not set (the organisation responsible, shown in the privacy policy and terms)');
+  if (!config.contactEmail) problems.push('CONTACT_EMAIL is not set (privacy and support contact shown on the legal pages)');
+  else if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(config.contactEmail)) problems.push('CONTACT_EMAIL is not a valid email address');
+  return problems;
 }

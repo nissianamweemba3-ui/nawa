@@ -1,8 +1,6 @@
 // Application assembly: database, services, routes, request pipeline and static web client.
 import http from 'node:http';
-import fs from 'node:fs';
-import path from 'node:path';
-import { loadConfig, ROOT } from './config.js';
+import { loadConfig } from './config.js';
 import { openDatabase } from './db.js';
 import { seedKnowledgeBase } from './kb/store.js';
 import { LegalIndex } from './kb/retrieval.js';
@@ -16,8 +14,7 @@ import { registerAuthRoutes } from './routes/auth.js';
 import { registerComplianceRoutes } from './routes/compliance.js';
 import { registerIntelligenceRoutes } from './routes/intelligence.js';
 import { registerGovernanceRoutes } from './routes/governance.js';
-
-const STATIC_TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml' };
+import { handlePublic, canonicalRedirect } from './site/router.js';
 
 export function createApp(overrides = {}) {
   const config = loadConfig(overrides);
@@ -38,12 +35,20 @@ export function createApp(overrides = {}) {
   registerIntelligenceRoutes(router, svc);
   registerGovernanceRoutes(router, svc);
 
-  const webRoot = path.join(ROOT, 'web');
+  const hsts = config.production && config.siteUrl?.startsWith('https://');
 
   async function handle(req, res) {
-    const url = new URL(req.url, 'http://localhost');
     try {
-      if (!url.pathname.startsWith('/api/')) return serveStatic(webRoot, url.pathname, res);
+      let url;
+      try { url = new URL(req.url, 'http://localhost'); } catch { throw new HttpError(400, 'Malformed request URL'); }
+      if (hsts) res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+      const target = canonicalRedirect(req, config, url);
+      if (target) {
+        res.writeHead(301, { ...SECURITY_HEADERS, Location: target, 'Cache-Control': 'no-cache', 'Content-Length': 0 });
+        res.end();
+        return;
+      }
+      if (!url.pathname.startsWith('/api/')) return handlePublic(req, res, config, url);
       const match = router.match(req.method, url.pathname);
       if (!match) throw new HttpError(404, 'Not found');
       if (match.methodNotAllowed) throw new HttpError(405, 'Method not allowed');
@@ -76,14 +81,4 @@ export function createApp(overrides = {}) {
 
   const server = http.createServer((req, res) => { handle(req, res); });
   return { server, svc, db, config, close: () => new Promise((r) => server.close(() => { db.close(); r(); })) };
-}
-
-function serveStatic(webRoot, pathname, res) {
-  const rel = pathname === '/' ? 'index.html' : decodeURIComponent(pathname).replace(/^\/+/, '');
-  const file = path.resolve(webRoot, rel);
-  const inside = file.startsWith(webRoot + path.sep);
-  const target = inside && fs.existsSync(file) && fs.statSync(file).isFile() ? file : path.join(webRoot, 'index.html');
-  const type = STATIC_TYPES[path.extname(target)] ?? 'application/octet-stream';
-  res.writeHead(200, { ...SECURITY_HEADERS, 'Content-Type': type, 'Cache-Control': 'no-cache' });
-  fs.createReadStream(target).pipe(res);
 }

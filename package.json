@@ -11,13 +11,19 @@
     "start": "node --disable-warning=ExperimentalWarning server/index.js",
     "seed:demo": "node --disable-warning=ExperimentalWarning scripts/seed-demo.js",
     "test": "node --disable-warning=ExperimentalWarning --test --test-concurrency=1 tests/*.test.js",
-    "check": "node --check server/index.js",
-    "build:demo": "node demo/build.mjs"
+    "build:demo": "node demo/build.mjs",
+    "lint": "eslint .",
+    "build:assets": "node scripts/build-assets.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "1.8.0"
   },
   "devDependencies": {
-    "esbuild": "0.25.10"
+    "@eslint/js": "9.36.0",
+    "axe-core": "4.10.3",
+    "esbuild": "0.25.10",
+    "eslint": "9.36.0",
+    "globals": "16.4.0",
+    "html-validate": "11.18.0"
   }
 }

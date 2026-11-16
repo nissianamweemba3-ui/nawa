@@ -43,6 +43,16 @@ document.addEventListener('click', async (e) => {
   if (login) { e.preventDefault(); await signInAs(login.dataset.demoLogin); return; }
   if (e.target.closest('[data-demo-reset]')) { e.preventDefault(); await resetDemo(); location.reload(); return; }
   if (e.target.closest('[data-demo-close]')) { viewer.hidden = true; return; }
+  const sitePage = e.target.closest('a[href="/"], a[href="/privacy"], a[href="/terms"]');
+  if (sitePage) {
+    e.preventDefault();
+    e.stopPropagation();
+    viewer.innerHTML = `<div class="demo-viewer-card"><div class="demo-viewer-head"><b>Not included in the browser demo</b>
+      <button type="button" class="btn small secondary" data-demo-close>Close</button></div>
+      <p>The home page, privacy policy and terms of use are served by the full server deployment. This browser demo contains the signed-in application only.</p></div>`;
+    viewer.hidden = false;
+    return;
+  }
   const link = e.target.closest('a[href^="/api/evidence/"]');
   if (link) {
     e.preventDefault();

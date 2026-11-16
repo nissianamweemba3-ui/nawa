@@ -20,7 +20,6 @@ import { htmlToText, decodeEntities } from '../server/lib/html-text.js';
 export const DEMO_PASSWORD = 'Demo-2026-zambia';
 const STORE_KEY = 'zcip-demo-v1';
 const MAX_UPLOAD = 1024 * 1024;
-const ENGINE = 'mvp-weighted-1.0';
 const ANALYSABLE = { 'text/plain': 'text', 'text/markdown': 'text', 'text/csv': 'text', 'text/html': 'html',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx' };
 const EVIDENCE_TYPES = ['application/pdf', 'text/plain', 'text/markdown', 'text/csv', 'text/html', 'image/png', 'image/jpeg',

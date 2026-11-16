@@ -2,7 +2,8 @@
 // Web client for the Zambia Compliance Intelligence Platform. No inline scripts or styles (strict CSP);
 // every dynamic value is HTML-escaped with esc() before rendering.
 
-const state = { me: null, view: 'dashboard', controls: [], chat: [], copilot: null, lastAnalysis: null, authTab: 'login' };
+const state = { me: null, view: 'dashboard', controls: [], chat: [], copilot: null, lastAnalysis: null,
+  authTab: location.hash === '#register' ? 'register' : 'login' };
 const $ = (sel, el = document) => el.querySelector(sel);
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const can = (perm) => Boolean(state.me?.permissions.includes(perm));
@@ -40,7 +41,9 @@ function render(html) { $('#root').innerHTML = html; }
 function renderAuth() {
   $('#session').innerHTML = '';
   const t = state.authTab;
-  render(`<div class="auth card">
+  const heading = t === 'register' ? 'Create an organisation account' : t === 'mfa' ? 'Two-step verification' : 'Sign in';
+  render(`<main class="auth card" id="main">
+    <h1 class="auth-title">${heading}</h1>
     <div class="tabs">
       <button class="btn ${t === 'login' ? '' : 'secondary'}" data-action="auth-tab" data-tab="login">Sign in</button>
       <button class="btn ${t === 'register' ? '' : 'secondary'}" data-action="auth-tab" data-tab="register">Register organisation</button>
@@ -60,7 +63,7 @@ function renderAuth() {
       <label for="r-name">Your name</label><input id="r-name" name="name" required>
       <label for="r-email">Email</label><input id="r-email" name="email" type="email" required autocomplete="username">
       <label for="r-pw">Password (12+ characters, letters and numbers)</label><input id="r-pw" name="password" type="password" minlength="12" required autocomplete="new-password">
-      <h3>Organisation</h3>
+      <h2>Organisation</h2>
       <label for="r-org">Entity name</label><input id="r-org" name="orgName" placeholder="Example: ABC Limited" required>
       <div class="row">
         <div><label for="r-sector">Sector</label><input id="r-sector" name="sector" placeholder="Mining, HR, Retail, Finance…"></div>
@@ -68,8 +71,9 @@ function renderAuth() {
       </div>
       <label for="r-role">Role</label><select id="r-role" name="role"><option>Data Controller</option><option>Data Processor</option><option>Controller and Processor</option></select>
       <div class="actions"><button class="btn">Create account</button></div>
+      <p class="small muted">By creating an account you agree to the <a href="/terms">terms of use</a>. See the <a href="/privacy">privacy policy</a> for how your data is handled.</p>
     </form>`}
-  </div>`);
+  </main>`);
 }
 
 // ---------------- shell ----------------
@@ -111,7 +115,6 @@ async function renderApp() {
   }
 }
 
-function main(html) { $('#main').innerHTML = html; }
 const controlById = (id) => state.controls.find((c) => c.id === id);
 
 // ---------------- views ----------------
@@ -120,19 +123,19 @@ const VIEWS = {
     const [latest, insights, ai] = await Promise.all([api('/api/assessments/latest'), api('/api/insights'), api('/api/ai/status')]);
     const a = latest.assessment;
     if (!a) {
-      return `<h2>Compliance dashboard</h2><p class="muted">Complete the assessment to see your score and action plan.</p>
+      return `<h1>Compliance dashboard</h1><p class="muted">Complete the assessment to see your score and action plan.</p>
         <div class="actions"><button class="btn" data-action="nav" data-view="assessment">Start assessment</button></div>${aiNote(ai)}`;
     }
-    return `<h2>Compliance dashboard</h2>
-      <div class="score"><div class="circle">${a.score}</div><div><h3>${esc(state.me.activeOrg.name)}</h3>
+    return `<h1>Compliance dashboard</h1>
+      <div class="score"><div class="circle">${a.score}</div><div><h2>${esc(state.me.activeOrg.name)}</h2>
         <p>Screening result: <b>${esc(a.risk)} risk</b> ${insights.delta === null ? '' : `<span class="badge info">${insights.delta >= 0 ? '+' : ''}${insights.delta} since last assessment</span>`}</p>
         <p class="muted small">Deterministic score (engine ${esc(a.engineVersion)}), assessed ${date(a.createdAt)}. Not a legal certification.</p></div></div>
       <div class="kpis"><div class="kpi"><span>Score</span><b>${a.score}%</b></div><div class="kpi"><span>Gaps</span><b>${a.gaps.length}</b></div>
         <div class="kpi"><span>Open tasks</span><b>${insights.tasks.open}</b></div><div class="kpi"><span>Regulatory updates</span><b>${insights.openRegulatoryNotifications}</b></div></div>
-      <h3>Top priorities</h3>
+      <h2>Top priorities</h2>
       ${insights.priorities.slice(0, 5).map((p, i) => `<div class="item">${prio(p.priority)} <span class="badge info">score ${p.score}</span><br><b>${i + 1}. ${esc(p.question)}</b>
         <br><span class="muted small">${esc(p.factors.join(' · '))}</span></div>`).join('') || '<p class="muted">No open priorities.</p>'}
-      <h3>Signals</h3>${insights.patterns.map((p) => `<div class="item"><span class="badge ${p.severity === 'high' ? 'high' : 'med'}">${esc(p.severity)}</span> <b>${esc(p.title)}</b><br><span class="muted small">${esc(p.detail)}</span></div>`).join('') || '<p class="muted">No signals detected.</p>'}
+      <h2>Signals</h2>${insights.patterns.map((p) => `<div class="item"><span class="badge ${p.severity === 'high' ? 'high' : 'med'}">${esc(p.severity)}</span> <b>${esc(p.title)}</b><br><span class="muted small">${esc(p.detail)}</span></div>`).join('') || '<p class="muted">No signals detected.</p>'}
       ${aiNote(ai)}`;
   },
 
@@ -140,7 +143,7 @@ const VIEWS = {
     const o = await api('/api/org');
     const members = await api('/api/members');
     const edit = can('org.update');
-    return `<h2>Organisation profile</h2>
+    return `<h1>Organisation profile</h1>
       <form data-form="org">
         <div class="row">
           <div><label for="o-name">Entity name</label><input id="o-name" name="name" value="${esc(o.name)}" ${edit ? '' : 'disabled'}></div>
@@ -153,7 +156,7 @@ const VIEWS = {
         <p class="muted small">These flags drive contextual prioritisation. They never change the deterministic score.</p>
         ${edit ? '<div class="actions"><button class="btn">Save profile</button></div>' : ''}
       </form>
-      <h3>Members</h3>
+      <h2>Members</h2>
       <table><thead><tr><th>Name</th><th>Email</th><th>Role</th></tr></thead><tbody>
       ${members.map((m) => `<tr><td>${esc(m.name)}</td><td>${esc(m.email)}</td><td>${can('member.manage') && m.id !== state.me.user.id
         ? `<select data-change="member-role" data-user="${esc(m.id)}">${['owner', 'admin', 'compliance_officer', 'contributor', 'viewer'].map((r) => `<option ${m.role === r ? 'selected' : ''}>${r}</option>`).join('')}</select>`
@@ -161,10 +164,10 @@ const VIEWS = {
       ${can('member.manage') ? `<form data-form="add-member"><div class="row"><div><label for="am-email">Add a registered user by email</label><input id="am-email" name="email" type="email" required></div>
         <div><label for="am-role">Role</label><select id="am-role" name="role"><option>viewer</option><option>contributor</option><option>compliance_officer</option><option>admin</option></select></div></div>
         <div class="actions"><button class="btn secondary">Add member</button></div></form>` : ''}
-      <h3>Security</h3>
+      <h2>Security</h2>
       <div id="mfa-area">${state.me.user.mfaEnabled ? '<p><span class="badge low">MFA enabled</span> Your account requires a verification code at sign-in.</p>'
         : '<p class="muted">Multi-factor authentication is not enabled for your account.</p><button class="btn secondary" data-action="mfa-setup">Enable MFA</button>'}</div>
-      <h3>Add another organisation</h3>
+      <h2>Add another organisation</h2>
       <form data-form="new-org"><div class="row"><div><label for="no-name">Entity name</label><input id="no-name" name="name" required></div>
         <div><label for="no-sector">Sector</label><input id="no-sector" name="sector"></div></div><div class="actions"><button class="btn secondary">Create organisation</button></div></form>`;
   },
@@ -173,7 +176,7 @@ const VIEWS = {
     const latest = await api('/api/assessments/latest');
     const prev = latest.assessment?.answers ?? {};
     const editable = can('assessment.create');
-    return `<h2>Compliance assessment</h2>
+    return `<h1>Compliance assessment</h1>
       <p class="muted">Answer based on the organisation's current position. This is a screening tool, not a legal opinion. Open the Copilot on any question for plain-language guidance, evidence expectations and sources.</p>
       <div class="split"><div><form data-form="assessment">
       ${state.controls.map((c) => `<div class="q"><p>${esc(c.question)}</p><div class="opts">
@@ -185,19 +188,19 @@ const VIEWS = {
 
   async evidence() {
     const ev = await api('/api/evidence');
-    return `<h2>Evidence</h2><p class="muted">Files are encrypted at rest and versioned. Link evidence to a control so the platform can track freshness.</p>
+    return `<h1>Evidence</h1><p class="muted">Files are encrypted at rest and versioned. Link evidence to a control so the platform can track freshness.</p>
       ${can('evidence.upload') ? `<form data-form="evidence" class="panel">
         <div class="row"><div><label for="e-title">Title</label><input id="e-title" name="title" required></div>
-          <div><label for="e-control">Control</label><select id="e-control" name="controlId"><option value="">— none —</option>${state.controls.map((c) => `<option value="${esc(c.id)}">${esc(c.requirementTitle)}</option>`).join('')}</select></div>
+          <div><label for="e-control">Control</label><select id="e-control" name="controlId"><option value="">None</option>${state.controls.map((c) => `<option value="${esc(c.id)}">${esc(c.requirementTitle)}</option>`).join('')}</select></div>
           <div><label for="e-valid">Valid until (optional)</label><input id="e-valid" name="validUntil" type="date"></div>
-          <div><label for="e-sup">Replaces (new version of)</label><select id="e-sup" name="supersedes"><option value="">— new evidence —</option>${ev.items.map((i) => `<option value="${esc(i.id)}">${esc(i.title)} v${i.version}</option>`).join('')}</select></div></div>
+          <div><label for="e-sup">Replaces (new version of)</label><select id="e-sup" name="supersedes"><option value="">New evidence item</option>${ev.items.map((i) => `<option value="${esc(i.id)}">${esc(i.title)} v${i.version}</option>`).join('')}</select></div></div>
         <label for="e-file">File (PDF, DOCX, XLSX, TXT, MD, CSV, HTML, PNG, JPG; max 5 MB)</label><input id="e-file" name="file" type="file" required>
         <div class="actions"><button class="btn">Upload evidence</button></div></form>` : ''}
-      <h3>Evidence status by control</h3>
+      <h2>Evidence status by control</h2>
       <table><thead><tr><th>Control</th><th>Status</th><th>Items</th><th>Latest</th></tr></thead><tbody>
       ${state.controls.map((c) => { const s = ev.status[c.id]; return `<tr><td>${esc(c.requirementTitle)}</td><td>${statusBadge(s.status)}</td><td>${s.count}</td><td>${date(s.latestAt)}</td></tr>`; }).join('')}
       </tbody></table>
-      <h3>Files</h3>
+      <h2>Files</h2>
       <table><thead><tr><th>Title</th><th>Control</th><th>Version</th><th>Valid until</th><th>SHA-256</th><th></th></tr></thead><tbody>
       ${ev.items.map((i) => `<tr><td>${esc(i.title)}<br><span class="muted small">${esc(i.filename)}</span></td><td>${esc(controlById(i.controlId)?.requirementTitle ?? '—')}</td><td>v${i.version}</td>
         <td>${date(i.validUntil)}</td><td><code>${esc(i.sha256.slice(0, 16))}…</code></td><td><a href="/api/evidence/${esc(i.id)}/download">Download</a></td></tr>`).join('') || '<tr><td colspan="6" class="muted">No evidence uploaded yet.</td></tr>'}
@@ -206,10 +209,10 @@ const VIEWS = {
 
   async tasks() {
     const tasks = await api('/api/tasks');
-    return `<h2>Remediation tasks</h2>
+    return `<h1>Remediation tasks</h1>
       ${can('task.create') ? `<form data-form="task" class="panel"><div class="row">
         <div><label for="t-title">Title</label><input id="t-title" name="title" required minlength="3"></div>
-        <div><label for="t-control">Control</label><select id="t-control" name="controlId"><option value="">— none —</option>${state.controls.map((c) => `<option value="${esc(c.id)}">${esc(c.requirementTitle)}</option>`).join('')}</select></div>
+        <div><label for="t-control">Control</label><select id="t-control" name="controlId"><option value="">None</option>${state.controls.map((c) => `<option value="${esc(c.id)}">${esc(c.requirementTitle)}</option>`).join('')}</select></div>
         <div><label for="t-prio">Priority</label><select id="t-prio" name="priority"><option>high</option><option selected>medium</option><option>low</option></select></div>
         <div><label for="t-due">Due date</label><input id="t-due" name="dueDate" type="date"></div></div>
         <label for="t-desc">Description</label><textarea id="t-desc" name="description"></textarea>
@@ -222,7 +225,7 @@ const VIEWS = {
 
   async documents() {
     const types = await api('/api/documents/types');
-    return `<h2>Document generator</h2><p class="muted">Generates a structured starter document from your profile, latest assessment and approved sources. Legal review is required before use.</p>
+    return `<h1>Document generator</h1><p class="muted">Generates a structured starter document from your profile, latest assessment and approved sources. Legal review is required before use.</p>
       <form data-form="docgen"><div class="row"><div><label for="d-type">Document</label><select id="d-type" name="type">${types.map((t) => `<option>${esc(t)}</option>`).join('')}</select></div>
       <div><label for="d-dpo">Contact / DPO name</label><input id="d-dpo" name="dpo" placeholder="Name or role"></div></div>
       <div class="actions"><button class="btn">Generate document</button></div></form><pre id="doc-output" class="doc hidden"></pre>`;
@@ -230,7 +233,7 @@ const VIEWS = {
 
   async assistant() {
     const ai = await api('/api/ai/status');
-    return `<h2>AI Compliance Assistant</h2>
+    return `<h1>AI Compliance Assistant</h1>
       <p class="muted">Answers are grounded in approved, version-controlled legal sources and your organisation's own data only. Every claim must cite a source; when sources are insufficient the assistant says so.</p>
       ${aiNote(ai)}
       <div id="chat" class="chat">${state.chat.map(renderMsg).join('')}</div>
@@ -241,35 +244,35 @@ const VIEWS = {
   async docintel() {
     const [ev, cl, analyses] = await Promise.all([api('/api/evidence'), api('/api/documents/checklists'), api('/api/documents/analyses')]);
     const analysable = ev.items.filter((i) => cl.analysableTypes.includes(i.mime));
-    return `<h2>Document intelligence <span class="badge info">pilot</span></h2>
-      <p class="muted">Analyse an uploaded policy or record against an approved checklist. Results are potential observations for human review — not legal determinations. Document content is treated as untrusted data.</p>
+    return `<h1>Document intelligence <span class="badge info">pilot</span></h1>
+      <p class="muted">Analyse an uploaded policy or record against an approved checklist. Results are potential observations for human review, not legal determinations. Document content is treated as untrusted data.</p>
       ${can('document.analyse') ? `<form data-form="analyse" class="panel"><div class="row">
         <div><label for="di-ev">Document (TXT, MD, CSV, HTML, DOCX)</label><select id="di-ev" name="evidenceId" required>${analysable.map((i) => `<option value="${esc(i.id)}" ${state.lastAnalysis?.evidenceId === i.id ? 'selected' : ''}>${esc(i.title)} — ${esc(i.filename)}</option>`).join('') || '<option value="">Upload a document in Evidence first</option>'}</select></div>
         <div><label for="di-cl">Checklist</label><select id="di-cl" name="checklist">${cl.checklists.map((c) => `<option value="${esc(c.key)}">${esc(c.label)}</option>`).join('')}</select></div></div>
         <div class="actions"><button class="btn" ${analysable.length ? '' : 'disabled'}>Analyse document</button></div></form>` : ''}
       <div id="analysis">${state.lastAnalysis ? renderAnalysis(state.lastAnalysis) : ''}</div>
-      <h3>Previous analyses</h3>
+      <h2>Previous analyses</h2>
       ${analyses.map((a) => `<div class="item"><b>${esc(a.checklistLabel)}</b> · ${date(a.createdAt)} · ${a.findings.filter((f) => f.status !== 'covered').length} potential gap(s)
         ${a.securityFlags.length ? '<span class="badge high">security flags</span>' : ''} <button class="btn small secondary" data-action="open-analysis" data-id="${esc(a.id)}">Open</button></div>`).join('') || '<p class="muted">No analyses yet.</p>'}`;
   },
 
   async insights() {
     const i = await api('/api/insights');
-    return `<h2>Risk insights</h2><p class="muted">Pattern analysis and prioritisation are rule-based and explainable. The deterministic score remains authoritative.</p>
-      <h3>Compliance trend</h3>${sparkline(i.trend)}
+    return `<h1>Risk insights</h1><p class="muted">Pattern analysis and prioritisation are rule-based and explainable. The deterministic score remains authoritative.</p>
+      <h2>Compliance trend</h2>${sparkline(i.trend)}
       <div class="kpis"><div class="kpi"><span>Evidence missing</span><b>${i.evidenceSummary.missing ?? 0}</b></div><div class="kpi"><span>Evidence expired</span><b>${i.evidenceSummary.expired ?? 0}</b></div>
         <div class="kpi"><span>Overdue tasks</span><b>${i.tasks.overdue}</b></div><div class="kpi"><span>Assessments</span><b>${i.trend.length}</b></div></div>
-      <h3>Contextual priorities</h3>
+      <h2>Contextual priorities</h2>
       <table><thead><tr><th>Control</th><th>Answer</th><th>Evidence</th><th>Priority score</th><th>Why</th></tr></thead><tbody>
       ${i.priorities.map((p) => `<tr><td>${prio(p.priority)}<br>${esc(p.question)}</td><td>${esc(p.answer)}</td><td>${statusBadge(p.evidence)}</td><td><b>${p.score}</b></td><td class="small">${esc(p.factors.join('; '))}</td></tr>`).join('') || '<tr><td colspan="5" class="muted">No priorities.</td></tr>'}
       </tbody></table>
-      <h3>Signals</h3>${i.patterns.map((p) => `<div class="item"><span class="badge ${p.severity === 'high' ? 'high' : 'med'}">${esc(p.severity)}</span> <b>${esc(p.title)}</b><br><span class="muted small">${esc(p.detail)} Controls: ${esc(p.controlIds.map((c) => controlById(c)?.requirementTitle ?? c).join(', '))}</span></div>`).join('') || '<p class="muted">No signals detected.</p>'}
-      ${can('insights.executive') ? `<h3>Executive summary</h3><button class="btn secondary" data-action="exec-summary">Generate management summary</button><div id="exec"></div>` : ''}`;
+      <h2>Signals</h2>${i.patterns.map((p) => `<div class="item"><span class="badge ${p.severity === 'high' ? 'high' : 'med'}">${esc(p.severity)}</span> <b>${esc(p.title)}</b><br><span class="muted small">${esc(p.detail)} Controls: ${esc(p.controlIds.map((c) => controlById(c)?.requirementTitle ?? c).join(', '))}</span></div>`).join('') || '<p class="muted">No signals detected.</p>'}
+      ${can('insights.executive') ? `<h2>Executive summary</h2><button class="btn secondary" data-action="exec-summary">Generate management summary</button><div id="exec"></div>` : ''}`;
   },
 
   async regulatory() {
     const notes = await api('/api/regulatory/notifications');
-    return `<h2>Regulatory updates</h2><p class="muted">Only updates validated by a legal reviewer reach your organisation. Each lists the controls that may be affected.</p>
+    return `<h1>Regulatory updates</h1><p class="muted">Only updates validated by a legal reviewer reach your organisation. Each lists the controls that may be affected.</p>
       ${notes.map((n) => `<div class="item"><span class="badge ${n.status === 'open' ? 'high' : 'low'}">${esc(n.status)}</span> <span class="badge info">${esc(n.change?.significance ?? '')} significance</span>
         <b>${esc(n.change?.title ?? 'Update')}</b><br><span class="muted small">Reviewed ${date(n.change?.reviewedAt)} · Affected controls: ${esc(n.affectedControls.map((c) => controlById(c)?.requirementTitle ?? c).join(', '))}</span>
         ${n.change?.reviewNote ? `<br><span class="small">Reviewer note: ${esc(n.change.reviewNote)}</span>` : ''}
@@ -279,11 +282,11 @@ const VIEWS = {
 
   async kb() {
     const [sources, reqs] = await Promise.all([api('/api/kb/sources'), api('/api/kb/requirements')]);
-    return `<h2>Legal knowledge base</h2>
+    return `<h1>Legal knowledge base</h1>
       <p class="muted">Version-controlled sources. Only <b>approved, current</b> versions are retrievable by the AI. Pilot-baseline entries are summaries whose references must be verified by a qualified legal reviewer.</p>
       <form data-form="kb-search"><label for="kb-q">Search approved sources</label><div class="actions"><input id="kb-q" name="q" placeholder="e.g. breach notification"><button class="btn secondary">Search</button></div></form>
       <div id="kb-results"></div>
-      <h3>Sources & versions</h3>
+      <h2>Sources & versions</h2>
       ${sources.map((s) => `<div class="item"><b>${esc(s.title)}</b> <span class="muted small">${esc(s.issuer)} · ${esc(s.source_type)} · <code>${esc(s.id)}</code></span>
         ${s.versions.map((v) => `<div class="small">${v.isCurrent ? '<span class="badge low">current</span>' : ''}<span class="badge ${v.status === 'approved' ? 'low' : v.status === 'pending_review' ? 'med' : 'info'}">${esc(v.status)}</span>
           ${v.pilotBaseline ? '<span class="badge med">pilot summary</span>' : ''} ${esc(v.versionLabel)} · ${v.sectionCount} sections · reviewed by ${esc(v.reviewedBy ?? '—')}
@@ -291,7 +294,7 @@ const VIEWS = {
           ${v.status === 'pending_review' && can('kb.review') ? `<button class="btn small" data-action="review-version" data-id="${esc(v.id)}" data-decision="approve">Approve</button>
             <button class="btn small danger" data-action="review-version" data-id="${esc(v.id)}" data-decision="reject">Reject</button>` : ''}</div>`).join('')}</div>`).join('')}
       <div id="version-view"></div>
-      <h3>Requirements map</h3>
+      <h2>Requirements map</h2>
       <table><thead><tr><th>Code</th><th>Requirement</th><th>Sources</th><th>Applies</th></tr></thead><tbody>
       ${reqs.map((r) => `<tr><td><code>${esc(r.code)}</code></td><td><b>${esc(r.title)}</b><br><span class="small muted">${esc(r.obligation)}</span></td>
         <td class="small">${esc(r.sourceRefs.map((x) => x.ref).join('; '))}</td><td class="small">${r.applicability.always ? 'All organisations' : `If ${esc(r.applicability.orgFlag)}`}</td></tr>`).join('')}
@@ -300,16 +303,16 @@ const VIEWS = {
 
   async governance() {
     const [changes, sources] = await Promise.all([api('/api/governance/changes'), api('/api/kb/sources')]);
-    return `<h2>Regulatory change review</h2>
-      <p class="muted">Captured updates are compared with the current approved version. A legal reviewer — not the person who captured it — validates significance and affected requirements before anything is published.</p>
+    return `<h1>Regulatory change review</h1>
+      <p class="muted">Captured updates are compared with the current approved version. A legal reviewer other than the person who captured it validates significance and affected requirements before anything is published.</p>
       ${can('regulatory.capture') ? `<form data-form="capture" class="panel">
         <div class="row"><div><label for="c-src">Source</label><select id="c-src" name="sourceId">${sources.map((s) => `<option value="${esc(s.id)}">${esc(s.title)}</option>`).join('')}</select></div>
         <div><label for="c-title">Update title</label><input id="c-title" name="title" required></div></div>
         <label for="c-url">Official source URL (optional; allow-listed hosts only)</label><input id="c-url" name="url" placeholder="https://www.dpc.gov.zm/…">
-        <label for="c-text">Captured text — start each amended or new section with a line like <code>[DPA 2021 — Breach notification] Heading</code>. Use <code>[REPEALED]</code> as the body to remove a section.</label>
+        <label for="c-text">Captured text. Start each amended or new section with a line like <code>[DPA 2021 — Breach notification] Heading</code>. Use <code>[REPEALED]</code> as the body to remove a section.</label>
         <textarea id="c-text" name="text" rows="8"></textarea>
         <div class="actions"><button class="btn">Capture update</button></div></form>` : ''}
-      <h3>Changes</h3>
+      <h2>Changes</h2>
       ${changes.map((c) => `<div class="item"><span class="badge ${c.status === 'detected' ? 'med' : c.status === 'validated' ? 'low' : 'info'}">${esc(c.status)}</span> <b>${esc(c.title)}</b>
         <span class="muted small">captured ${date(c.capturedAt)} · ${esc(c.origin)} · sha256 <code>${esc(c.capturedSha256.slice(0, 12))}…</code></span>
         <div class="small">Diff: ${c.diff.modified.length} modified, ${c.diff.added.length} added, ${c.diff.repealed.length} repealed, ${c.diff.unchanged.length} unchanged
@@ -320,7 +323,7 @@ const VIEWS = {
 
   async audit() {
     const [log, chain] = await Promise.all([api('/api/audit'), api('/api/audit/verify')]);
-    return `<h2>Audit log</h2><p>${chain.valid ? `<span class="badge low">hash chain verified</span> ${chain.entries} entries` : `<span class="badge high">hash chain broken</span> at ${esc(chain.brokenAt)}`}</p>
+    return `<h1>Audit log</h1><p>${chain.valid ? `<span class="badge low">hash chain verified</span> ${chain.entries} entries` : `<span class="badge high">hash chain broken</span> at ${esc(chain.brokenAt)}`}</p>
       <table><thead><tr><th>When</th><th>User</th><th>Action</th><th>Details</th></tr></thead><tbody>
       ${log.map((a) => `<tr><td class="small">${esc(a.createdAt.replace('T', ' ').slice(0, 19))}</td><td>${esc(a.user ?? '—')}</td><td><code>${esc(a.action)}</code></td><td class="small">${esc(JSON.stringify(a.metadata))}</td></tr>`).join('')}
       </tbody></table>`;
@@ -354,8 +357,8 @@ function renderMsg(m) {
 }
 
 function renderAnalysis(a) {
-  return `<h3>${esc(a.checklistLabel)} — findings</h3>
-    ${a.securityFlags.length ? `<div class="panel small"><b>Security flags</b> — instruction-like or unusual content was found and treated as data:<br>${a.securityFlags.map((f) => `<span class="badge high">${esc(f.id)}</span> “${esc(f.excerpt)}”`).join('<br>')}</div>` : ''}
+  return `<h2>${esc(a.checklistLabel)}: findings</h2>
+    ${a.securityFlags.length ? `<div class="panel small"><b>Security flags.</b> Instruction-like or unusual content was found and treated as data:<br>${a.securityFlags.map((f) => `<span class="badge high">${esc(f.id)}</span> “${esc(f.excerpt)}”`).join('<br>')}</div>` : ''}
     <p class="small muted">${a.aiUsed ? 'Model observations were added to the rule-based checklist.' : 'Rule-based checklist analysis (no model observations).'}</p>
     <table><thead><tr><th>Item</th><th>Status</th><th>Observation</th><th>Review</th></tr></thead><tbody>
     ${a.findings.map((f) => `<tr><td>${esc(f.label)}</td><td><span class="badge ${f.status === 'covered' ? 'low' : f.status === 'needs_review' ? 'med' : 'high'}">${esc(f.status.replace('_', ' '))}</span></td>
@@ -557,14 +560,14 @@ const ACTIONS = {
   'open-change': async (el) => {
     const [c, reqs] = await Promise.all([api(`/api/governance/changes/${encodeURIComponent(el.dataset.id)}`), api('/api/kb/requirements')]);
     const suggested = new Set(c.suggestedRequirements.map((s) => s.code));
-    const block = (title, list, render) => (list.length ? `<h3>${title}</h3>${list.map(render).join('')}` : '');
+    const block = (title, list, render) => (list.length ? `<h2>${title}</h2>${list.map(render).join('')}` : '');
     $('#change-view').innerHTML = `<div class="panel"><b>${esc(c.title)}</b> <span class="badge info">${esc(c.status)}</span>
       ${c.diff.securityFlags?.length ? `<p class="small"><span class="badge high">instruction-like text</span> ${esc(c.diff.securityFlags.map((f) => f.excerpt).join(' | '))}</p>` : ''}
       ${block('Modified', c.diff.modified, (d) => `<div class="source small"><b>${esc(d.ref)}</b><br><span class="muted">Before: ${esc(d.oldBody)}</span><br>After: ${esc(d.newBody)}</div>`)}
       ${block('Added', c.diff.added, (d) => `<div class="source small"><b>${esc(d.ref)} — ${esc(d.heading)}</b><br>${esc(d.newBody)}</div>`)}
       ${block('Repealed', c.diff.repealed, (d) => `<div class="source small"><b>${esc(d.ref)}</b><br><span class="muted">${esc(d.oldBody)}</span></div>`)}
       ${c.status === 'detected' && can('regulatory.review') ? `<form data-form="review-change" data-id="${esc(c.id)}">
-        <h3>Affected requirements</h3><p class="small muted">Suggestions are pre-selected; confirm or adjust.</p>
+        <h2>Affected requirements</h2><p class="small muted">Suggestions are pre-selected; confirm or adjust.</p>
         ${reqs.map((r) => `<label class="check"><input type="checkbox" name="req" value="${esc(r.code)}" ${suggested.has(r.code) ? 'checked' : ''}> <code>${esc(r.code)}</code> ${esc(r.title)}
           ${suggested.has(r.code) ? `<span class="badge info">${esc(c.suggestedRequirements.find((s) => s.code === r.code).reason)}</span>` : ''}</label>`).join('')}
         <div class="row"><div><label for="rc-sig">Significance</label><select id="rc-sig" name="significance"><option>low</option><option selected>medium</option><option>high</option></select></div>

@@ -20,7 +20,7 @@ const result = await build({
   legalComments: 'none',
 });
 const js = result.outputFiles[0].text.replace(/<\/script/gi, '<\\/script');
-const css = fs.readFileSync(path.join(root, 'web/styles.css'), 'utf8') + fs.readFileSync(path.join(root, 'demo/demo.css'), 'utf8');
+const css = ['web/tokens.css', 'web/styles.css', 'demo/demo.css'].map((f) => fs.readFileSync(path.join(root, f), 'utf8')).join('\n');
 const shell = fs.readFileSync(path.join(root, 'web/index.html'), 'utf8');
 const bodyMarkup = shell.slice(shell.indexOf('<body>') + 6, shell.indexOf('</body>')).trim();
 

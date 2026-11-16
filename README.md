@@ -1,4 +1,4 @@
-# DPA Zambia — Compliance Intelligence Platform
+# DPA Zambia Compliance Intelligence Platform
 
 Zambia data-protection compliance platform, built on the original **DPA Zambia MVP** (preserved unchanged in
 [`legacy/mvp/`](legacy/mvp/)) and taken through the secure foundation the *Phase Three: AI Intelligence*
@@ -25,16 +25,34 @@ npm run seed:demo
 npm start
 ```
 
-Open http://127.0.0.1:3000 and sign in with an account printed by `seed:demo`. The demo creates two separate
-organisations (Acme Retail, ZedHealth), a platform admin and a legal reviewer, so you can exercise tenant
-isolation, four-eyes review and the regulatory workflow. Or register your own organisation from the sign-in page.
+Open http://127.0.0.1:3000 for the public site, or http://127.0.0.1:3000/app to sign in with an account printed
+by `seed:demo`. The demo creates two separate organisations (Acme Retail, ZedHealth), a platform admin and a legal
+reviewer, so you can exercise tenant isolation, four-eyes review and the regulatory workflow. Or register your own
+organisation from the sign-in page.
+
+| Route | Purpose |
+|---|---|
+| `/` | Public home page (indexable) |
+| `/privacy`, `/terms` | Privacy policy and terms of use, generated from the deployment's configuration (indexable) |
+| `/app` | The signed-in application (`noindex`) |
+| `/api/*` | JSON API |
+| `/robots.txt`, `/sitemap.xml` | Crawler instructions and sitemap, built from the same page registry |
+| anything else | 404 page with a real 404 status |
 
 ```bash
 npm test
 ```
 
-Runs 76 tests: scoring parity with the MVP, auth/MFA/RBAC, CSRF, tenant isolation (including AI context),
-AI threat tests, retrieval accuracy, KB and regulatory governance, document intelligence and the Claude provider.
+Runs 94 tests: scoring parity with the MVP, auth/MFA/RBAC, CSRF, tenant isolation (including AI context),
+AI threat tests, retrieval accuracy, KB and regulatory governance, document intelligence, the Claude provider, and
+the public site (status codes, redirects, metadata, sitemap, robots, structured data, HTML validation, compression).
+
+```bash
+npm run lint
+```
+
+`npm run build:assets` regenerates the logo, favicon set, social card and home-page screenshot in `web/assets/`
+(needs Playwright with Chromium).
 
 ### Browser-only demo
 
@@ -65,6 +83,10 @@ ANTHROPIC_API_KEY=... npm start
 | `DATA_KEY` | generated per data dir | 64 hex chars; AES-256-GCM key for evidence and MFA secrets. **Set this in production.** |
 | `DATA_DIR`, `PORT`, `HOST` | `./data`, `3000`, `127.0.0.1` | Storage and listener |
 | `SECURE_COOKIES` | `false` | Set `true` behind HTTPS |
+| `NODE_ENV` | | `production` makes start-up refuse to run unless the settings marked *required in production* are set |
+| `SITE_URL` | request host | Public https origin, e.g. `https://compliance.example.zm`. Used for canonical URLs, sitemap, social metadata and redirects from other hosts. *Required in production.* |
+| `TRUST_PROXY` | `false` | `true` behind a proxy that sets `X-Forwarded-Proto`, to redirect plain HTTP to HTTPS |
+| `OPERATOR_NAME`, `CONTACT_EMAIL` | | Organisation responsible for the deployment and its privacy contact, shown in the privacy policy, terms and structured data. *Required in production.* |
 | `OFFICIAL_SOURCE_HOSTS` | DPC, Parliament, ZambiaLII | Allow-list for regulatory fetches |
 
 ## What was built
@@ -74,7 +96,7 @@ ANTHROPIC_API_KEY=... npm start
 | Organisation | Profile form | Multi-tenant orgs, memberships, 5 roles, org switching | Profile flags drive contextual prioritisation |
 | Assessment | 15 questions | Questions served from the requirements database; history | Compliance Copilot per question |
 | Scoring | Weighted score | Same engine, server-side, versioned and explainable (parity-tested) | Trend, pattern and priority insights; never changes the score |
-| Gaps | Gap list | Remediation tasks with owners, due dates, status | Explainable, factor-based prioritisation |
+| Gaps | Gap list | Remediation tasks with priorities, due dates, status | Explainable, factor-based prioritisation |
 | Legal sources | Static list | Versioned KB: sources → versions → sections → requirements → controls, with four-eyes review | RAG retrieval over approved, current versions only |
 | Documents | Starter generator | Encrypted, versioned evidence store | Document intelligence against approved checklists, with human review → tasks |
 | Storage | `localStorage` | SQLite here; PostgreSQL + RLS schema in `db/postgres/` | AI interaction log (redacted) |
@@ -91,7 +113,8 @@ server/            Node HTTP server (no framework)
   kb/              seed data, store (versioning/review), BM25 retrieval
   compliance/      deterministic scoring, state/read models, document generator
   routes/          auth, compliance, intelligence, governance
-web/               single-page client (vanilla JS, strict CSP)
+  site/            public pages, SEO metadata, sitemap/robots, static delivery
+web/               application client (vanilla JS, strict CSP), site styles, tokens.css, assets/
 db/postgres/       production schema with Row Level Security
 docs/              readiness assessment, architecture & security, residual risks
 legacy/mvp/        the original MVP, unchanged
