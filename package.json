@@ -1,0 +1,29 @@
+{
+  "name": "zambia-compliance-intelligence-platform",
+  "version": "3.0.0",
+  "private": true,
+  "description": "Zambia data protection compliance platform: secure multi-tenant foundation + Phase Three AI intelligence layer, built on the DPA Zambia MVP.",
+  "type": "module",
+  "engines": {
+    "node": ">=22.5"
+  },
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning server/index.js",
+    "seed:demo": "node --disable-warning=ExperimentalWarning scripts/seed-demo.js",
+    "test": "node --disable-warning=ExperimentalWarning --test --test-concurrency=1 tests/*.test.js",
+    "build:demo": "node demo/build.mjs",
+    "lint": "eslint .",
+    "build:assets": "node scripts/build-assets.mjs"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "1.8.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.36.0",
+    "axe-core": "4.10.3",
+    "esbuild": "0.25.10",
+    "eslint": "9.36.0",
+    "globals": "16.4.0",
+    "html-validate": "11.18.0"
+  }
+}

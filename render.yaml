@@ -1,0 +1,37 @@
+# Render Blueprint. In the Render dashboard choose New > Blueprint, select this repository, then fill in the
+# values marked "sync: false" when prompted. See docs/DEPLOYMENT.md.
+services:
+  - type: web
+    name: dpa-zambia-compliance
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    # Persistent disks require a paid instance type.
+    plan: starter
+    # Render has no region in Zambia. Frankfurt is the nearest; data is stored outside Zambia (see docs/DEPLOYMENT.md).
+    region: frankfurt
+    branch: main
+    numInstances: 1
+    healthCheckPath: /api/health
+    disk:
+      name: data
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SECURE_COOKIES
+        value: "true"
+      - key: TRUST_PROXY
+        value: "true"
+      - key: HOSTING_LOCATION
+        value: Germany (Frankfurt)
+      # 64 hex characters. Generate with: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+      - key: DATA_KEY
+        sync: false
+      - key: SITE_URL
+        sync: false
+      - key: OPERATOR_NAME
+        sync: false
+      - key: CONTACT_EMAIL
+        sync: false
+      # Optional: add ANTHROPIC_API_KEY in the dashboard later to enable model-generated answers.
