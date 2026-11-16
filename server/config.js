@@ -38,6 +38,8 @@ export function loadConfig(overrides = {}) {
     // The organisation operating this deployment, shown in the privacy policy, terms and structured data.
     operatorName: (env('OPERATOR_NAME') ?? '').trim() || null,
     contactEmail: (env('CONTACT_EMAIL') ?? '').trim() || null,
+    // Country (and optionally region) where the server and its data are hosted, disclosed in the privacy policy.
+    hostingLocation: (env('HOSTING_LOCATION') ?? '').trim() || null,
     port: int('PORT', 3000),
     host: process.env.HOST ?? '127.0.0.1',
     dataDir,
@@ -75,5 +77,6 @@ export function productionConfigProblems(config) {
   if (!config.operatorName) problems.push('OPERATOR_NAME is not set (the organisation responsible, shown in the privacy policy and terms)');
   if (!config.contactEmail) problems.push('CONTACT_EMAIL is not set (privacy and support contact shown on the legal pages)');
   else if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(config.contactEmail)) problems.push('CONTACT_EMAIL is not a valid email address');
+  if (!config.hostingLocation) problems.push('HOSTING_LOCATION is not set (country where the server and data are hosted, disclosed in the privacy policy)');
   return problems;
 }

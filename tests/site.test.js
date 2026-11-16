@@ -230,15 +230,21 @@ test('legal pages reflect configuration: no operator in development, operator de
   const dev = await (await get('/privacy')).text();
   assert.match(dev, /operator has not been configured/);
   assert.match(dev, /does not send any data to an external AI model provider/);
+  assert.match(dev, /hosting location of this development deployment has not been configured/);
   const configured = await startApp();
   try {
     configured.app.config.operatorName = 'Example Compliance Services Ltd';
     configured.app.config.contactEmail = 'privacy@example.com';
     configured.app.config.ai.provider = 'anthropic';
+    configured.app.config.hostingLocation = 'Germany (Frankfurt)';
     const html = await (await fetch(`${configured.base}/privacy`)).text();
     assert.match(html, /operated by <strong>Example Compliance Services Ltd<\/strong>/);
     assert.match(html, /mailto:privacy@example\.com/);
     assert.match(html, /uses Claude, a model provided by Anthropic/);
+    assert.match(html, /hosted in Germany \(Frankfurt\)\. This means personal data is stored outside Zambia\./);
+    configured.app.config.hostingLocation = 'Zambia (Lusaka)';
+    const local = await (await fetch(`${configured.base}/privacy`)).text();
+    assert.match(local, /hosted in Zambia \(Lusaka\)\.<\/p>/);
     const home = await (await fetch(`${configured.base}/`)).text();
     const data = JSON.parse(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/.exec(home)[1]);
     const org = data['@graph'].find((n) => n['@type'] === 'Organization');
@@ -305,8 +311,8 @@ test('production configuration is validated before start-up', () => {
   const empty = loadConfig({ env: { NODE_ENV: 'production', SITE_URL: '', OPERATOR_NAME: '', CONTACT_EMAIL: '' } });
   assert.equal(empty.production, true);
   const problems = productionConfigProblems({ ...empty, dataKeyHex: null, secureCookies: false });
-  for (const key of ['SITE_URL', 'DATA_KEY', 'SECURE_COOKIES', 'OPERATOR_NAME', 'CONTACT_EMAIL']) assert.ok(problems.some((p) => p.startsWith(key)), key);
-  const ok = loadConfig({ env: { NODE_ENV: 'production', SITE_URL: 'https://compliance.example.zm', OPERATOR_NAME: 'Example Ltd', CONTACT_EMAIL: 'privacy@example.com' } });
+  for (const key of ['SITE_URL', 'DATA_KEY', 'SECURE_COOKIES', 'OPERATOR_NAME', 'CONTACT_EMAIL', 'HOSTING_LOCATION']) assert.ok(problems.some((p) => p.startsWith(key)), key);
+  const ok = loadConfig({ env: { NODE_ENV: 'production', SITE_URL: 'https://compliance.example.zm', OPERATOR_NAME: 'Example Ltd', CONTACT_EMAIL: 'privacy@example.com', HOSTING_LOCATION: 'Germany (Frankfurt)' } });
   assert.deepEqual(productionConfigProblems({ ...ok, dataKeyHex: 'ab'.repeat(32), secureCookies: true }), []);
   assert.ok(productionConfigProblems({ ...ok, siteUrl: 'http://compliance.example.zm', dataKeyHex: 'ab'.repeat(32), secureCookies: true })[0].includes('https'));
 });

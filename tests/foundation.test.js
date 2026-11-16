@@ -100,3 +100,15 @@ test('audit log hash chain detects tampering and deletion', () => {
   db2.prepare('DELETE FROM audit_log WHERE seq = 2').run();
   assert.equal(verifyAuditChain(db2).valid, false);
 });
+
+test('admin CLI assigns platform roles to registered users only, with an audit entry', async () => {
+  const { setPlatformRole } = await import('../server/admin-cli.js');
+  const db = openDatabase(':memory:');
+  db.prepare("INSERT INTO users (id, email, name, password_hash, created_at) VALUES ('u1', 'rev@example.com', 'Rev', 'x', '2026-01-01')").run();
+  assert.deepEqual(setPlatformRole(db, 'REV@example.com', 'legal_reviewer'), { from: 'user', to: 'legal_reviewer' });
+  assert.equal(db.prepare("SELECT platform_role FROM users WHERE id = 'u1'").get().platform_role, 'legal_reviewer');
+  assert.throws(() => setPlatformRole(db, 'rev@example.com', 'superuser'), /Role must be one of/);
+  assert.throws(() => setPlatformRole(db, 'nobody@example.com', 'platform_admin'), /No user is registered/);
+  assert.ok(db.prepare("SELECT 1 FROM audit_log WHERE action = 'admin.platform_role_change'").get());
+  assert.equal(verifyAuditChain(db).valid, true);
+});

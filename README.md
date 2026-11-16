@@ -43,7 +43,7 @@ organisation from the sign-in page.
 npm test
 ```
 
-Runs 94 tests: scoring parity with the MVP, auth/MFA/RBAC, CSRF, tenant isolation (including AI context),
+Runs 95 tests: scoring parity with the MVP, auth/MFA/RBAC, CSRF, tenant isolation (including AI context),
 AI threat tests, retrieval accuracy, KB and regulatory governance, document intelligence, the Claude provider, and
 the public site (status codes, redirects, metadata, sitemap, robots, structured data, HTML validation, compression).
 
@@ -87,6 +87,7 @@ ANTHROPIC_API_KEY=... npm start
 | `SITE_URL` | request host | Public https origin, e.g. `https://compliance.example.zm`. Used for canonical URLs, sitemap, social metadata and redirects from other hosts. *Required in production.* |
 | `TRUST_PROXY` | `false` | `true` behind a proxy that sets `X-Forwarded-Proto`, to redirect plain HTTP to HTTPS |
 | `OPERATOR_NAME`, `CONTACT_EMAIL` | | Organisation responsible for the deployment and its privacy contact, shown in the privacy policy, terms and structured data. *Required in production.* |
+| `HOSTING_LOCATION` | | Country and region where the server and data are hosted, disclosed in the privacy policy. *Required in production.* |
 | `OFFICIAL_SOURCE_HOSTS` | DPC, Parliament, ZambiaLII | Allow-list for regulatory fetches |
 
 ## What was built
@@ -120,5 +121,11 @@ docs/              readiness assessment, architecture & security, residual risks
 legacy/mvp/        the original MVP, unchanged
 tests/             node:test suites
 ```
+
+## Deployment
+
+The platform needs a host that runs a long-lived container with a persistent volume. `Dockerfile` and the Render
+Blueprint `render.yaml` are ready to use; follow [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md), including the note on
+storing data outside Zambia.
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [docs/SECURITY.md](docs/SECURITY.md).

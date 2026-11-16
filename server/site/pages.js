@@ -116,6 +116,15 @@ function operatorBlock(config) {
   return '<p class="notice">This is a development deployment and its operator has not been configured. Production deployments must set the operator name and contact email before they will start.</p>';
 }
 
+function hostingBlock(config) {
+  if (!config.hostingLocation) {
+    return '<p class="notice">The hosting location of this development deployment has not been configured. Production deployments must state it before they will start.</p>';
+  }
+  const inZambia = /zambia/i.test(config.hostingLocation);
+  return `<p>The platform's server, database and evidence files are hosted in ${esc(config.hostingLocation)}.${inZambia ? '' :
+    ' This means personal data is stored outside Zambia. The Act restricts transfers of personal data outside Zambia, and the operator is responsible for ensuring this hosting arrangement meets those conditions.'}</p>`;
+}
+
 const contactLine = (config) => (config.contactEmail
   ? `<a href="mailto:${esc(config.contactEmail)}">${esc(config.contactEmail)}</a>`
   : 'the operator');
@@ -173,6 +182,9 @@ export function privacyPage(config) {
     <li>The operator's technical administrators, who can access the server and database to run and secure the service.</li>
   </ul>
   <p>Personal data is not sold or used for advertising.</p>
+
+  <h2>Where data is stored</h2>
+  ${hostingBlock(config)}
 
   <h2>How long data is kept</h2>
   <p>Records are kept while your organisation's account is active. The platform does not delete records automatically. To have an account or organisation's records deleted, contact ${contactLine(config)}.</p>
